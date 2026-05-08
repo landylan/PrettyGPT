@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "PrettyGPT",
+  "version": "1.0",
+  "description": "讓 ChatGPT 回答更簡潔的 Chrome 擴充功能",
+  "content_scripts": [
+    {
+      "matches": [
+        "*://chatgpt.com/*"
+      ],
+      "css": [
+        "style.css"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_title": "PrettyGPT"
+  }
+}
