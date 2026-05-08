@@ -1,74 +1,117 @@
 function injectCollapseButtons() {
-    // Find all AI response containers
-    const assistantMessages = document.querySelectorAll('[data-message-author-role="assistant"]');
-    
-    if (assistantMessages.length === 0) return;
+    const allElements = document.querySelectorAll('[data-message-author-role]');
+    const messages = Array.from(allElements);
 
-    assistantMessages.forEach((msg, index) => {
-        const isLast = (index === assistantMessages.length - 1);
-        
-        // Check if button already exists in this message
-        let btnWrapper = msg.querySelector('.prettygpt-toggle-wrapper');
-        let btn = msg.querySelector('.prettygpt-toggle-btn');
+    messages.forEach((msg, index) => {
+        if (msg.getAttribute('data-message-author-role') === 'user') {
+            const nextMsg = messages[index + 1];
+            
+            if (nextMsg && nextMsg.getAttribute('data-message-author-role') === 'assistant') {
+                const allAssistants = document.querySelectorAll('[data-message-author-role="assistant"]');
+                const isLast = (nextMsg === allAssistants[allAssistants.length - 1]);
 
-        if (!btnWrapper) {
-            // Create wrapper and button
-            btnWrapper = document.createElement('div');
-            btnWrapper.className = 'prettygpt-toggle-wrapper';
-            
-            btn = document.createElement('button');
-            btn.className = 'prettygpt-toggle-btn';
-            
-            // Add click listener
-            btn.addEventListener('click', () => {
-                if (msg.classList.contains('prettygpt-collapsed')) {
-                    // Expand
-                    msg.classList.remove('prettygpt-collapsed');
-                    msg.setAttribute('data-prettygpt-expanded', 'true'); // User manually expanded
-                    btn.innerHTML = '🤖 收合';
-                } else {
-                    // Collapse
-                    msg.classList.add('prettygpt-collapsed');
-                    msg.removeAttribute('data-prettygpt-expanded'); // User manually collapsed
-                    btn.innerHTML = '🤖 展開';
+                // Find the outermost wrappers (often <section> or <article>)
+                const userContainer = msg.closest('section, article, [data-testid^="conversation-turn"]') || msg.parentElement.parentElement;
+                const assistantContainer = nextMsg.closest('section, article, [data-testid^="conversation-turn"]') || nextMsg.parentElement.parentElement;
+
+                // Compress vertical spacing on the user container
+                userContainer.classList.add('prettygpt-compress-vertical');
+                // Ensure immediate children also get compressed (fixes the padding 48px issue)
+                Array.from(userContainer.children).forEach(child => child.classList.add('prettygpt-compress-vertical-inner'));
+                
+                // Do the same for assistant container so the gap is fully eliminated
+                assistantContainer.classList.add('prettygpt-compress-vertical');
+
+                // Find user action bar <div aria-label="你的訊息操作"...>
+                let userActionBar = userContainer.querySelector('[aria-label*="訊息操作"], [aria-label*="message actions" i]');
+                if (!userActionBar) {
+                    const userBtns = Array.from(userContainer.querySelectorAll('button'));
+                    if (userBtns.length > 0) userActionBar = userBtns[0].parentElement;
                 }
-            });
 
-            btnWrapper.appendChild(btn);
+                // --- TOP BUTTON (User Action Bar) ---
+                let btn = userContainer.querySelector('.prettygpt-toggle-btn-top');
+                if (!btn) {
+                    btn = document.createElement('button');
+                    btn.className = 'prettygpt-toggle-btn prettygpt-toggle-btn-top text-token-text-secondary';
+                    
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (assistantContainer.classList.contains('prettygpt-collapsed')) {
+                            assistantContainer.classList.remove('prettygpt-collapsed');
+                            assistantContainer.setAttribute('data-prettygpt-expanded', 'true');
+                            btn.innerHTML = '🤖 收合';
+                            if (btnBottom) btnBottom.innerHTML = '🤖 收合';
+                        } else {
+                            assistantContainer.classList.add('prettygpt-collapsed');
+                            assistantContainer.removeAttribute('data-prettygpt-expanded');
+                            btn.innerHTML = '🤖 展開';
+                        }
+                        btn.blur(); // Fix: remove focus so it can hide on mouseout
+                    });
 
-            // Find the markdown container to insert the button right before it
-            const markdownDiv = msg.querySelector('.markdown');
-            if (markdownDiv && markdownDiv.parentElement) {
-                markdownDiv.parentElement.insertBefore(btnWrapper, markdownDiv);
-            } else {
-                // Fallback: append to the message root
-                msg.appendChild(btnWrapper);
-            }
-        }
+                    if (userActionBar) {
+                        userActionBar.insertBefore(btn, userActionBar.firstChild);
+                    } else {
+                        let fallbackWrapper = document.createElement('div');
+                        fallbackWrapper.className = 'flex justify-end gap-1 mt-2';
+                        fallbackWrapper.appendChild(btn);
+                        msg.appendChild(fallbackWrapper);
+                    }
+                }
 
-        // Logic for auto-collapse
-        // We only auto-collapse if the user hasn't manually expanded it.
-        const userExpanded = msg.hasAttribute('data-prettygpt-expanded');
+                // --- BOTTOM BUTTON (Assistant Action Bar) ---
+                let aiActionBar = assistantContainer.querySelector('[aria-label*="回覆操作"], [aria-label*="Reply actions" i]');
+                if (!aiActionBar) {
+                    const aiBtns = Array.from(assistantContainer.querySelectorAll('button'));
+                    if (aiBtns.length > 0) aiActionBar = aiBtns[aiBtns.length - 1].closest('.flex') || aiBtns[aiBtns.length - 1].parentElement;
+                }
 
-        if (isLast) {
-            // The last message should ALWAYS be expanded by default (for streaming generation)
-            if (!msg.classList.contains('prettygpt-collapsed')) {
-                 btn.innerHTML = '🤖 收合';
-                 msg.classList.remove('prettygpt-collapsed');
-            }
-        } else {
-            // For historical messages, collapse them if the user hasn't explicitly expanded them
-            if (!userExpanded) {
-                msg.classList.add('prettygpt-collapsed');
-                btn.innerHTML = '🤖 展開';
-            } else {
-                btn.innerHTML = '🤖 收合';
+                let btnBottom = assistantContainer.querySelector('.prettygpt-toggle-btn-bottom');
+                if (!btnBottom) {
+                    btnBottom = document.createElement('button');
+                    btnBottom.className = 'prettygpt-toggle-btn prettygpt-toggle-btn-bottom text-token-text-secondary';
+                    
+                    btnBottom.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // The bottom button is only visible when expanded, so clicking it will ALWAYS collapse
+                        assistantContainer.classList.add('prettygpt-collapsed');
+                        assistantContainer.removeAttribute('data-prettygpt-expanded');
+                        btn.innerHTML = '🤖 展開'; // Sync top button
+                        btnBottom.innerHTML = '🤖 展開';
+                        btnBottom.blur();
+                    });
+
+                    if (aiActionBar) {
+                        aiActionBar.insertBefore(btnBottom, aiActionBar.firstChild);
+                    }
+                }
+
+                const userExpanded = assistantContainer.hasAttribute('data-prettygpt-expanded');
+
+                if (isLast) {
+                    if (!assistantContainer.classList.contains('prettygpt-collapsed')) {
+                         btn.innerHTML = '🤖 收合';
+                         if (btnBottom) btnBottom.innerHTML = '🤖 收合';
+                         assistantContainer.classList.remove('prettygpt-collapsed');
+                    }
+                } else {
+                    if (!userExpanded) {
+                        assistantContainer.classList.add('prettygpt-collapsed');
+                        btn.innerHTML = '🤖 展開';
+                        if (btnBottom) btnBottom.innerHTML = '🤖 展開';
+                    } else {
+                        btn.innerHTML = '🤖 收合';
+                        if (btnBottom) btnBottom.innerHTML = '🤖 收合';
+                    }
+                }
             }
         }
     });
 }
 
-// Observe DOM changes to handle dynamically loaded messages (e.g. streaming responses or scrolling up)
 const observer = new MutationObserver((mutations) => {
     let shouldUpdate = false;
     for (const mutation of mutations) {
@@ -78,14 +121,10 @@ const observer = new MutationObserver((mutations) => {
         }
     }
     if (shouldUpdate) {
-        // Debounce slightly to avoid too many calls during fast DOM changes
         clearTimeout(window.prettyGptTimeout);
-        window.prettyGptTimeout = setTimeout(injectCollapseButtons, 100);
+        window.prettyGptTimeout = setTimeout(injectCollapseButtons, 200);
     }
 });
 
-// Start observing the body for changes
 observer.observe(document.body, { childList: true, subtree: true });
-
-// Initial run
 injectCollapseButtons();

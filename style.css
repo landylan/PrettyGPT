@@ -1,64 +1,50 @@
-/* Container for the toggle button */
-.prettygpt-toggle-wrapper {
-    display: flex;
-    justify-content: flex-end;
-    margin: 0;
-    padding: 0;
-    width: 100%;
-}
-
-/* The toggle button itself */
-.prettygpt-toggle-btn {
-    background-color: transparent;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    padding: 2px 8px;
-    font-size: 11px;
-    color: #4b5563;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    opacity: 0.6;
-}
-
-.prettygpt-toggle-btn:hover {
-    background-color: #f3f4f6;
-    opacity: 1;
-}
-
-/* Dark mode support */
-html.dark .prettygpt-toggle-btn {
-    border-color: #4b5563;
-    color: #9ca3af;
-}
-
-html.dark .prettygpt-toggle-btn:hover {
-    background-color: #374151;
-    color: #d1d5db;
-}
-
-/* Hidden state: Aggressively compress the message container */
+/* Completely hide the assistant message wrapper when collapsed */
 .prettygpt-collapsed {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    margin-top: -8px !important; /* Pull up to save space */
-    margin-bottom: -8px !important;
-}
-
-.prettygpt-collapsed .markdown,
-.prettygpt-collapsed .flex.items-center.justify-start,
-.prettygpt-collapsed .juice\:flex,
-.prettygpt-collapsed .mt-1.flex.gap-3,
-.prettygpt-collapsed .empty\:hidden {
     display: none !important;
 }
 
-/* Ensure the message row itself doesn't have min-height */
-.prettygpt-collapsed article,
-.prettygpt-collapsed [role="presentation"] {
-    min-height: 0 !important;
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
+/* User message container vertical compression */
+.prettygpt-compress-vertical {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
 }
+
+.prettygpt-compress-vertical-inner {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* The toggle button itself (styled to match ChatGPT's small secondary buttons) */
+.prettygpt-toggle-btn {
+    background-color: transparent;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 12px;
+    color: inherit;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 0.7;
+    white-space: nowrap;
+}
+
+.prettygpt-toggle-btn:hover {
+    background-color: rgba(128, 128, 128, 0.15);
+    opacity: 1;
+}
+
+/* Fallback action bar styling */
+.prettygpt-fallback-bar {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.prettygpt-compress-vertical:hover .prettygpt-fallback-bar {
+    opacity: 1;
+}
+
